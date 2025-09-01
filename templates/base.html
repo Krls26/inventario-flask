@@ -55,21 +55,14 @@
             text-align: center;
             margin-top: 20px;
         }
-        input[type="file"] {
-            margin: 10px 0;
-            padding: 10px;
-            border: 2px dashed #1abc9c;
-            border-radius: 8px;
-            background: #ecfdf5;
-            cursor: pointer;
-        }
         button {
-            padding: 10px 20px;
+            padding: 12px 24px;
             background: #1abc9c;
             border: none;
             border-radius: 6px;
             color: white;
             font-weight: bold;
+            font-size: 16px;
             cursor: pointer;
             transition: background 0.3s;
         }
@@ -92,15 +85,15 @@
     </header>
 
     <main>
-        {% block content %}
-        <h1>Bienvenido al Inventario</h1>
-        <p>Sube un archivo Excel para importar el inventario:</p>
+    {% block content %}
+    <h1>Bienvenido al Inventario</h1>
+    <p>Exporta el inventario a Excel:</p>
 
-        <form action="/" method="POST" enctype="multipart/form-data">
-            <input type="file" name="archivo_excel" accept=".xlsx,.xls">
-            <button type="submit">Importar</button>
-        </form>
-        {% endblock %}
-    </main>
+    <form action="{{ url_for('exportar') }}" method="GET">
+        <button type="submit">Exportar Inventario</button>
+    </form>
+    {% endblock %}
+</main>
+
 </body>
 </html>

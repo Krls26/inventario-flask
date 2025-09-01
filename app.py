@@ -99,22 +99,20 @@ def agregar_categoria():
 # ---------- CONSULTAR INVENTARIO ----------
 @app.route("/consultar", methods=["GET", "POST"])
 def consultar():
-    categorias = Categoria.query.all()
-    productos = []
+    nombre = request.form.get("nombre", "").strip() if request.method == "POST" else ""
+    categoria_id = request.form.get("categoria_id", type=int) if request.method == "POST" else None
 
-    if request.method == "POST":
-        nombre = request.form.get("nombre", "").strip()
-        categoria_id = request.form.get("categoria_id", type=int)
+    query = Producto.query
+    if nombre:
+        query = query.filter(Producto.nombre.ilike(f"%{nombre}%"))
+    if categoria_id:
+        query = query.filter_by(categoria_id=categoria_id)
 
-        query = Producto.query
-        if nombre:
-            query = query.filter(Producto.nombre.ilike(f"%{nombre}%"))
-        if categoria_id:
-            query = query.filter_by(categoria_id=categoria_id)
+    productos = query.all()
+    categorias = Categoria.query.all()  # 🔹 Obtener categorías
 
-        productos = query.all()
+    return render_template("consultar.html", productos=productos, categorias=categorias, categoria_id=categoria_id)
 
-    return render_template("consultar.html", categorias=categorias, productos=productos)
 
 
 @app.route("/exportar_excel", methods=["POST"])
@@ -132,12 +130,15 @@ def exportar_excel():
 
     data = [{
         "Nombre": p.nombre,
-        "Precio": p.precio,
+        "Categoría": p.categoria.nombre,
         "Stock": p.stock,
-        "Categoría": p.categoria.nombre
+        "Precio": p.precio
     } for p in productos]
 
-    df = pd.DataFrame(data)
+    # Definir orden de columnas explícitamente
+    columnas = ["Nombre", "Categoría", "Stock", "Precio"]
+    df = pd.DataFrame(data, columns=columnas)
+
     output = BytesIO()
     df.to_excel(output, index=False)
     output.seek(0)

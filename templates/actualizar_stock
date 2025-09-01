@@ -1,9 +1,38 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Actualizar stock de {{ producto.nombre }}</h2>
-<form method="POST">
-    <label for="cantidad">Cantidad (+ para aumentar, - para reducir):</label>
-    <input type="number" name="cantidad" class="form-control mb-3">
-    <button type="submit" class="btn btn-success">Actualizar</button>
-</form>
+<h1>Gestión de Stock</h1>
+
+{% if productos %}
+<table border="1" cellpadding="5">
+    <tr>
+        <th>Nombre</th>
+        <th>Stock</th>
+        <th>Precio</th>
+        <th>Categoría</th>
+        <th>Acciones</th>
+    </tr>
+    {% for producto in productos %}
+    <tr>
+        <td>{{ producto.nombre }}</td>
+        <td>{{ producto.stock }}</td>
+        <td>{{ producto.precio }}</td>
+        <td>{{ producto.categoria.nombre }}</td>
+        <td>
+            <!-- Formulario para actualizar stock -->
+            <form method="POST" action="{{ url_for('actualizar_stock', id=producto.id) }}" style="display:inline;">
+                <input type="number" name="nuevo_stock" value="{{ producto.stock }}">
+                <button type="submit">Actualizar</button>
+            </form>
+
+            <!-- Formulario para eliminar producto -->
+            <form method="POST" action="{{ url_for('eliminar_producto', id=producto.id) }}" style="display:inline;">
+                <button type="submit" onclick="return confirm('¿Seguro que deseas eliminar este producto?');">Eliminar</button>
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+{% else %}
+<p>No hay productos en inventario.</p>
+{% endif %}
 {% endblock %}
