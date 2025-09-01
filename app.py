@@ -1,18 +1,20 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, send_file, flash
+import pandas as pd
 from models import db, Producto, Categoria
 import os
+from io import BytesIO
 
 app = Flask(__name__)
+app.secret_key = "supersecret"  # Necesario para flash messages
 
-# Configuración Render / PostgreSQL
+# Configuración DB
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-
 db.init_app(app)
 
 with app.app_context():
     db.create_all()
-    # Insertar categorías iniciales si no existen
+    # Categorías iniciales
     categorias_iniciales = [
         "Papelería", "Piñatería", "Juguetería", "Detalles",
         "Cajas", "Arreglos de bombas", "Stickers para bombas", "Libros"
@@ -23,55 +25,78 @@ with app.app_context():
     db.session.commit()
 
 
-# Página principal: lista productos
-@app.route("/")
-def index():
-    categorias = Categoria.query.all()
-    categoria_id = request.args.get("categoria_id", type=int)
-    productos = (
-        Producto.query.filter_by(categoria_id=categoria_id).all()
-        if categoria_id else Producto.query.all()
-    )
-    return render_template("index.html", categorias=categorias, productos=productos, categoria_id=categoria_id)
+# ---------- INICIO ----------
+@app.route("/", methods=["GET", "POST"])
+def inicio():
+    if request.method == "POST":
+        file = request.files.get("archivo_excel")
+        if file:
+            df = pd.read_excel(file)
+            for _, row in df.iterrows():
+                nombre = row["Nombre"]
+                precio = float(row["Precio"])
+                stock = int(row["Stock"])
+                categoria_nombre = row["Categoría"]
+
+                # Buscar o crear categoría
+                categoria = Categoria.query.filter_by(nombre=categoria_nombre).first()
+                if not categoria:
+                    categoria = Categoria(nombre=categoria_nombre)
+                    db.session.add(categoria)
+                    db.session.commit()
+
+                # Buscar producto
+                producto = Producto.query.filter_by(nombre=nombre).first()
+                if producto:
+                    # Si ya existe, actualiza precio y stock
+                    producto.precio = precio
+                    producto.stock = stock
+                    producto.categoria_id = categoria.id
+                else:
+                    # Si no existe, lo crea
+                    producto = Producto(
+                        nombre=nombre,
+                        precio=precio,
+                        stock=stock,
+                        categoria_id=categoria.id
+                    )
+                    db.session.add(producto)
+            
+            db.session.commit()
+            flash("Inventario actualizado/importado correctamente.", "success")
+
+    return render_template("inicio.html")
 
 
-# Formulario para agregar producto
-@app.route("/form_agregar_producto")
-def form_agregar_producto():
+# ---------- AGREGAR PRODUCTO ----------
+@app.route("/agregar_producto", methods=["GET", "POST"])
+def agregar_producto():
     categorias = Categoria.query.all()
+    if request.method == "POST":
+        nombre = request.form["nombre"]
+        precio = float(request.form["precio"])
+        stock = int(request.form["stock"])
+        categoria_id = int(request.form["categoria_id"])
+        nuevo = Producto(nombre=nombre, precio=precio, stock=stock, categoria_id=categoria_id)
+        db.session.add(nuevo)
+        db.session.commit()
+        return redirect(url_for("agregar_producto"))
     return render_template("agregar_producto.html", categorias=categorias)
 
 
-# Agregar producto
-@app.route("/agregar_producto", methods=["POST"])
-def agregar_producto():
-    nombre = request.form["nombre"]
-    precio = float(request.form["precio"])
-    stock = int(request.form["stock"])
-    categoria_id = int(request.form["categoria_id"])
-    nuevo = Producto(nombre=nombre, precio=precio, stock=stock, categoria_id=categoria_id)
-    db.session.add(nuevo)
-    db.session.commit()
-    return redirect(url_for("index"))
-
-
-# Formulario para agregar categoría
-@app.route("/form_agregar_categoria")
-def form_agregar_categoria():
+# ---------- AGREGAR CATEGORÍA ----------
+@app.route("/agregar_categoria", methods=["GET", "POST"])
+def agregar_categoria():
+    if request.method == "POST":
+        nombre = request.form["nombre_categoria"]
+        if not Categoria.query.filter_by(nombre=nombre).first():
+            db.session.add(Categoria(nombre=nombre))
+            db.session.commit()
+        return redirect(url_for("agregar_categoria"))
     return render_template("agregar_categoria.html")
 
 
-# Agregar categoría
-@app.route("/agregar_categoria", methods=["POST"])
-def agregar_categoria():
-    nombre = request.form["nombre_categoria"]
-    if not Categoria.query.filter_by(nombre=nombre).first():
-        db.session.add(Categoria(nombre=nombre))
-        db.session.commit()
-    return redirect(url_for("index"))
-
-
-# Consultar inventario
+# ---------- CONSULTAR INVENTARIO ----------
 @app.route("/consultar", methods=["GET", "POST"])
 def consultar():
     categorias = Categoria.query.all()
@@ -82,7 +107,6 @@ def consultar():
         categoria_id = request.form.get("categoria_id", type=int)
 
         query = Producto.query
-
         if nombre:
             query = query.filter(Producto.nombre.ilike(f"%{nombre}%"))
         if categoria_id:
@@ -93,25 +117,56 @@ def consultar():
     return render_template("consultar.html", categorias=categorias, productos=productos)
 
 
-# Eliminar producto
-@app.route("/eliminar_producto/<int:id>")
+@app.route("/exportar_excel", methods=["POST"])
+def exportar_excel():
+    nombre = request.form.get("nombre", "").strip()
+    categoria_id = request.form.get("categoria_id", type=int)
+
+    query = Producto.query
+    if nombre:
+        query = query.filter(Producto.nombre.ilike(f"%{nombre}%"))
+    if categoria_id:
+        query = query.filter_by(categoria_id=categoria_id)
+
+    productos = query.all()
+
+    data = [{
+        "Nombre": p.nombre,
+        "Precio": p.precio,
+        "Stock": p.stock,
+        "Categoría": p.categoria.nombre
+    } for p in productos]
+
+    df = pd.DataFrame(data)
+    output = BytesIO()
+    df.to_excel(output, index=False)
+    output.seek(0)
+
+    return send_file(output, download_name="inventario_filtrado.xlsx", as_attachment=True)
+
+
+# ---------- ACTUALIZAR Y ELIMINAR STOCK ----------
+@app.route("/stock", methods=["GET"])
+def stock():
+    productos = Producto.query.all()
+    return render_template("stock.html", productos=productos)
+
+
+@app.route("/actualizar_stock/<int:id>", methods=["POST"])
+def actualizar_stock(id):
+    producto = Producto.query.get_or_404(id)
+    nuevo_stock = int(request.form["nuevo_stock"])
+    producto.stock = nuevo_stock
+    db.session.commit()
+    return redirect(url_for("stock"))
+
+
+@app.route("/eliminar_producto/<int:id>", methods=["POST"])
 def eliminar_producto(id):
     producto = Producto.query.get_or_404(id)
     db.session.delete(producto)
     db.session.commit()
-    return redirect(url_for("index"))
-
-
-# Actualizar stock
-@app.route("/actualizar_stock/<int:id>", methods=["GET", "POST"])
-def actualizar_stock(id):
-    producto = Producto.query.get_or_404(id)
-    if request.method == "POST":
-        cantidad = int(request.form["cantidad"])
-        producto.stock += cantidad  # puede ser positivo o negativo
-        db.session.commit()
-        return redirect(url_for("index"))
-    return render_template("actualizar_stock.html", producto=producto)
+    return redirect(url_for("stock"))
 
 
 if __name__ == "__main__":
