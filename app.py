@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, send_file, flash
+from flask import Flask, render_template, request, redirect, url_for, send_file, flash, Response
 import pandas as pd
 from models import db, Producto, Categoria
 import os
@@ -48,12 +48,10 @@ def inicio():
                 # Buscar producto
                 producto = Producto.query.filter_by(nombre=nombre).first()
                 if producto:
-                    # Si ya existe, actualiza precio y stock
                     producto.precio = precio
                     producto.stock = stock
                     producto.categoria_id = categoria.id
                 else:
-                    # Si no existe, lo crea
                     producto = Producto(
                         nombre=nombre,
                         precio=precio,
@@ -114,7 +112,7 @@ def consultar():
     return render_template("consultar.html", productos=productos, categorias=categorias, categoria_id=categoria_id)
 
 
-
+# ---------- EXPORTAR INVENTARIO ----------
 @app.route("/exportar_excel", methods=["POST"])
 def exportar_excel():
     nombre = request.form.get("nombre", "").strip()
@@ -130,7 +128,7 @@ def exportar_excel():
 
     data = [{
         "Nombre": p.nombre,
-        "Categoría": p.categoria.nombre,
+        "Categoría": p.categoria.nombre if p.categoria else "Sin categoría",
         "Stock": p.stock,
         "Precio": p.precio
     } for p in productos]
@@ -140,10 +138,15 @@ def exportar_excel():
     df = pd.DataFrame(data, columns=columnas)
 
     output = BytesIO()
-    df.to_excel(output, index=False)
+    df.to_excel(output, index=False, sheet_name="Inventario")
     output.seek(0)
 
-    return send_file(output, download_name="inventario_filtrado.xlsx", as_attachment=True)
+    return send_file(
+        output,
+        download_name="inventario_filtrado.xlsx",
+        as_attachment=True,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
 
 
 # ---------- ACTUALIZAR Y ELIMINAR STOCK ----------
