@@ -4,10 +4,10 @@
 <h1>Consultar Inventario</h1>
 
 <form method="POST">
-    <input type="text" name="nombre" placeholder="Buscar por nombre">
+    <input type="text" name="nombre" placeholder="Buscar por nombre" value="{{ nombre or '' }}">
 
-    <!-- Listbox de categorías -->
-    <select name="categoria_id" size="5">
+    <!-- Menú desplegable de categorías -->
+    <select name="categoria_id">
         <option value="">-- Todas las categorías --</option>
         {% for categoria in categorias %}
             <option value="{{ categoria.id }}" {% if categoria.id == categoria_id %}selected{% endif %}>
