@@ -5,7 +5,7 @@ import os
 app = Flask(__name__)
 
 # Configuración de Render / PostgreSQL
-app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("postgresql://inventario_rkd3_user:d8cjHtcGQQvkZCKWP1QhF7FMtiPftGdr@dpg-d2qpctv5r7bs73b23l0g-a.oregon-postgres.render.com/inventario_rkd3")
+app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db.init_app(app)
