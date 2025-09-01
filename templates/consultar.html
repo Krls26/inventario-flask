@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Consultar inventario</h2>
+<form method="POST">
+    <input type="text" name="busqueda" placeholder="Buscar producto..." class="form-control mb-3">
+    <button type="submit" class="btn btn-primary">Buscar</button>
+</form>
+
+{% if productos %}
+    <h3>Resultados</h3>
+    <ul>
+    {% for p in productos %}
+        <li>{{ p.nombre }} - {{ p.stock }} en stock ({{ p.categoria.nombre }})</li>
+    {% endfor %}
+    </ul>
+{% endif %}
+{% endblock %}

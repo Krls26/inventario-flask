@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Actualizar stock de {{ producto.nombre }}</h2>
+<form method="POST">
+    <label for="cantidad">Cantidad (+ para aumentar, - para reducir):</label>
+    <input type="number" name="cantidad" class="form-control mb-3">
+    <button type="submit" class="btn btn-success">Actualizar</button>
+</form>
+{% endblock %}
