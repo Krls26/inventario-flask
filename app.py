@@ -65,7 +65,7 @@ def inicio():
             db.session.commit()
             flash("Inventario actualizado/importado correctamente.", "success")
 
-    return render_template("inicio.html")
+    return render_template("base.html")
 
 
 # ---------- AGREGAR PRODUCTO ----------
