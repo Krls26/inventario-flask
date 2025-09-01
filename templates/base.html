@@ -1,14 +1,24 @@
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-  <div class="container-fluid">
-    <a class="navbar-brand" href="{{ url_for('inicio') }}">Inventario</a>
-    <div class="collapse navbar-collapse">
-      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-        <li class="nav-item"><a class="nav-link" href="{{ url_for('inicio') }}">Inicio</a></li>
-        <li class="nav-item"><a class="nav-link" href="{{ url_for('agregar_producto') }}">Agregar Producto</a></li>
-        <li class="nav-item"><a class="nav-link" href="{{ url_for('agregar_categoria') }}">Agregar Categoría</a></li>
-        <li class="nav-item"><a class="nav-link" href="{{ url_for('consultar') }}">Consultar Inventario</a></li>
-        <li class="nav-item"><a class="nav-link" href="{{ url_for('stock') }}">Actualizar/Eliminar Stock</a></li>
-      </ul>
-    </div>
-  </div>
-</nav>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Inventario</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <a href="{{ url_for('inicio') }}">Inicio</a>
+            <a href="{{ url_for('index') }}">Inventario</a>
+            <a href="{{ url_for('agregar_producto') }}">Agregar Producto</a>
+            <a href="{{ url_for('agregar_categoria') }}">Agregar Categoría</a>
+            <a href="{{ url_for('consultar') }}">Consultar Inventario</a>
+            <a href="{{ url_for('actualizar_stock') }}">Actualizar/Eliminar Stock</a>
+        </nav>
+    </header>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>

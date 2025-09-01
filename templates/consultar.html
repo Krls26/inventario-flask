@@ -1,50 +1,32 @@
 {% extends "base.html" %}
-{% block content %}
-<div class="container mt-4">
-  <h2>Consultar Productos</h2>
-  <form method="POST" class="row g-3 mb-4">
-    <div class="col-md-6">
-      <label class="form-label">Nombre</label>
-      <input type="text" name="nombre" class="form-control" placeholder="Ejemplo: lápiz">
-    </div>
-    <div class="col-md-6">
-      <label class="form-label">Categoría</label>
-      <select name="categoria_id" class="form-select">
-        <option value="">-- Todas --</option>
-        {% for cat in categorias %}
-        <option value="{{ cat.id }}">{{ cat.nombre }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="col-12">
-      <button type="submit" class="btn btn-primary">Buscar</button>
-    </div>
-  </form>
 
-  {% if productos %}
-  <h4>Resultados</h4>
-  <table class="table table-bordered">
-    <thead>
-      <tr>
+{% block content %}
+<h1>Consultar Inventario</h1>
+
+<form method="POST">
+    <input type="text" name="nombre" placeholder="Buscar por nombre">
+    <input type="text" name="categoria" placeholder="Buscar por categoría">
+    <button type="submit">Buscar</button>
+</form>
+
+{% if productos %}
+<table border="1" cellpadding="5">
+    <tr>
+        <th>ID</th>
         <th>Nombre</th>
         <th>Precio</th>
         <th>Stock</th>
         <th>Categoría</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for p in productos %}
-      <tr>
-        <td>{{ p.nombre }}</td>
-        <td>${{ "%.2f"|format(p.precio) }}</td>
-        <td>{{ p.stock }}</td>
-        <td>{{ p.categoria.nombre }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  {% elif request.method == "POST" %}
-  <div class="alert alert-warning">No se encontraron productos.</div>
-  {% endif %}
-</div>
+    </tr>
+    {% for producto in productos %}
+    <tr>
+        <td>{{ producto.id }}</td>
+        <td>{{ producto.nombre }}</td>
+        <td>{{ producto.precio }}</td>
+        <td>{{ producto.stock }}</td>
+        <td>{{ producto.categoria.nombre }}</td>
+    </tr>
+    {% endfor %}
+</table>
+{% endif %}
 {% endblock %}
