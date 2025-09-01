@@ -89,7 +89,7 @@
     <h1>Bienvenido al Inventario</h1>
     <p>Exporta el inventario a Excel:</p>
 
-    <form action="{{ url_for('exportar') }}" method="GET">
+    <form action="{{ url_for('exportar_excel') }}" method="POST">
         <button type="submit">Exportar Inventario</button>
     </form>
     {% endblock %}
