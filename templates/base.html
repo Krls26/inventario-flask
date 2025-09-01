@@ -4,23 +4,103 @@
     <meta charset="UTF-8">
     <title>Inventario</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f4f6f9;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background: #2c3e50;
+            padding: 15px 30px;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+        }
+        nav ul {
+            list-style: none;
+            display: flex;
+            justify-content: center;
+            margin: 0;
+            padding: 0;
+        }
+        nav ul li {
+            margin: 0 15px;
+        }
+        nav ul li a {
+            color: #ecf0f1;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s;
+        }
+        nav ul li a:hover {
+            color: #1abc9c;
+        }
+        main {
+            max-width: 800px;
+            margin: 40px auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+        }
+        p {
+            text-align: center;
+            color: #555;
+        }
+        form {
+            text-align: center;
+            margin-top: 20px;
+        }
+        input[type="file"] {
+            margin: 10px 0;
+            padding: 10px;
+            border: 2px dashed #1abc9c;
+            border-radius: 8px;
+            background: #ecfdf5;
+            cursor: pointer;
+        }
+        button {
+            padding: 10px 20px;
+            background: #1abc9c;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #16a085;
+        }
+    </style>
 </head>
 <body>
     <header>
         <nav>
-    <ul>
-        <li><a href="{{ url_for('inicio') }}">Inicio</a></li>
-        <li><a href="{{ url_for('agregar_producto') }}">Agregar Producto</a></li>
-        <li><a href="{{ url_for('agregar_categoria') }}">Agregar Categoría</a></li>
-        <li><a href="{{ url_for('consultar') }}">Consultar Inventario</a></li>
-        <li><a href="{{ url_for('stock') }}">Stock</a></li>
-    </ul>
-</nav>
-
+            <ul>
+                <li><a href="{{ url_for('inicio') }}">Inicio</a></li>
+                <li><a href="{{ url_for('agregar_producto') }}">Agregar Producto</a></li>
+                <li><a href="{{ url_for('agregar_categoria') }}">Agregar Categoría</a></li>
+                <li><a href="{{ url_for('consultar') }}">Consultar Inventario</a></li>
+                <li><a href="{{ url_for('stock') }}">Stock</a></li>
+            </ul>
+        </nav>
     </header>
 
     <main>
-        {% block content %}{% endblock %}
+        {% block content %}
+        <h1>Bienvenido al Inventario</h1>
+        <p>Sube un archivo Excel para importar el inventario:</p>
+
+        <form action="/" method="POST" enctype="multipart/form-data">
+            <input type="file" name="archivo_excel" accept=".xlsx,.xls">
+            <button type="submit">Importar</button>
+        </form>
+        {% endblock %}
     </main>
 </body>
 </html>
