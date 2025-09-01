@@ -1,17 +1,50 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Consultar inventario</h2>
-<form method="POST">
-    <input type="text" name="busqueda" placeholder="Buscar producto..." class="form-control mb-3">
-    <button type="submit" class="btn btn-primary">Buscar</button>
-</form>
+<div class="container mt-4">
+  <h2>Consultar Productos</h2>
+  <form method="POST" class="row g-3 mb-4">
+    <div class="col-md-6">
+      <label class="form-label">Nombre</label>
+      <input type="text" name="nombre" class="form-control" placeholder="Ejemplo: lápiz">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Categoría</label>
+      <select name="categoria_id" class="form-select">
+        <option value="">-- Todas --</option>
+        {% for cat in categorias %}
+        <option value="{{ cat.id }}">{{ cat.nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-12">
+      <button type="submit" class="btn btn-primary">Buscar</button>
+    </div>
+  </form>
 
-{% if productos %}
-    <h3>Resultados</h3>
-    <ul>
-    {% for p in productos %}
-        <li>{{ p.nombre }} - {{ p.stock }} en stock ({{ p.categoria.nombre }})</li>
-    {% endfor %}
-    </ul>
-{% endif %}
+  {% if productos %}
+  <h4>Resultados</h4>
+  <table class="table table-bordered">
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>Precio</th>
+        <th>Stock</th>
+        <th>Categoría</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in productos %}
+      <tr>
+        <td>{{ p.nombre }}</td>
+        <td>${{ "%.2f"|format(p.precio) }}</td>
+        <td>{{ p.stock }}</td>
+        <td>{{ p.categoria.nombre }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% elif request.method == "POST" %}
+  <div class="alert alert-warning">No se encontraron productos.</div>
+  {% endif %}
+</div>
 {% endblock %}

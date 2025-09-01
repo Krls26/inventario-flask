@@ -74,11 +74,23 @@ def agregar_categoria():
 # Consultar inventario
 @app.route("/consultar", methods=["GET", "POST"])
 def consultar():
+    categorias = Categoria.query.all()
     productos = []
+
     if request.method == "POST":
-        busqueda = request.form["busqueda"]
-        productos = Producto.query.filter(Producto.nombre.ilike(f"%{busqueda}%")).all()
-    return render_template("consultar.html", productos=productos)
+        nombre = request.form.get("nombre", "").strip()
+        categoria_id = request.form.get("categoria_id", type=int)
+
+        query = Producto.query
+
+        if nombre:
+            query = query.filter(Producto.nombre.ilike(f"%{nombre}%"))
+        if categoria_id:
+            query = query.filter_by(categoria_id=categoria_id)
+
+        productos = query.all()
+
+    return render_template("consultar.html", categorias=categorias, productos=productos)
 
 
 # Eliminar producto
