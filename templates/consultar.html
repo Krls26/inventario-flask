@@ -16,25 +16,37 @@
         {% endfor %}
     </select>
 
+    <!-- Menú desplegable de sucursales -->
+    <select name="sucursal_id">
+        <option value="">-- Todas las sucursales --</option>
+        {% for sucursal in sucursales %}
+            <option value="{{ sucursal.id }}" {% if sucursal.id == sucursal_id %}selected{% endif %}>
+                {{ sucursal.nombre }}
+            </option>
+        {% endfor %}
+    </select>
+
     <button type="submit">Buscar</button>
 </form>
 
-{% if productos %}
+{% if resultados %}
 <table border="1" cellpadding="5">
     <tr>
-        <th>ID</th>
+        <th>Código</th>
         <th>Nombre</th>
-        <th>Precio</th>
-        <th>Stock</th>
+        <th>Precio Venta</th>
+        <th>Sucursal</th>
+        <th>Cantidad</th>
         <th>Categoría</th>
     </tr>
-    {% for producto in productos %}
+    {% for producto, categoria, sucursal, ps in resultados %}
     <tr>
-        <td>{{ producto.id }}</td>
+        <td>{{ producto.codigo }}</td>
         <td>{{ producto.nombre }}</td>
-        <td>{{ producto.precio }}</td>
-        <td>{{ producto.stock }}</td>
-        <td>{{ producto.categoria.nombre }}</td>
+        <td>{{ producto.precio_venta }}</td>
+        <td>{{ sucursal.nombre }}</td>
+        <td>{{ ps.cantidad }}</td>
+        <td>{{ categoria.nombre }}</td>
     </tr>
     {% endfor %}
 </table>
