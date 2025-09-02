@@ -99,17 +99,37 @@ def agregar_categoria():
 def consultar():
     nombre = request.form.get("nombre", "").strip() if request.method == "POST" else ""
     categoria_id = request.form.get("categoria_id", type=int) if request.method == "POST" else None
+    sucursal_id = request.form.get("sucursal_id", type=int) if request.method == "POST" else None
 
-    query = Producto.query
+    # Base query: unir productos con categorías e inventario por sucursal
+    query = db.session.query(Producto, Categoria, Sucursal, ProductoSucursal).\
+        join(Categoria, Producto.categoria_id == Categoria.id).\
+        join(ProductoSucursal, Producto.id == ProductoSucursal.producto_id).\
+        join(Sucursal, ProductoSucursal.sucursal_id == Sucursal.id)
+
+    # Filtros dinámicos
     if nombre:
         query = query.filter(Producto.nombre.ilike(f"%{nombre}%"))
     if categoria_id:
-        query = query.filter_by(categoria_id=categoria_id)
+        query = query.filter(Producto.categoria_id == categoria_id)
+    if sucursal_id:
+        query = query.filter(Sucursal.id == sucursal_id)
 
-    productos = query.all()
-    categorias = Categoria.query.all()  # 🔹 Obtener categorías
+    resultados = query.all()
 
-    return render_template("consultar.html", productos=productos, categorias=categorias, categoria_id=categoria_id)
+    # Consultar categorías y sucursales para los listbox del formulario
+    categorias = Categoria.query.all()
+    sucursales = Sucursal.query.all()
+
+    return render_template(
+        "consultar.html",
+        resultados=resultados,
+        categorias=categorias,
+        sucursales=sucursales,
+        categoria_id=categoria_id,
+        sucursal_id=sucursal_id
+    )
+
 
 
 # ---------- EXPORTAR INVENTARIO ----------
