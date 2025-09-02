@@ -1,38 +1,63 @@
-{% extends "base.html" %}
-{% block content %}
-<h1>Gestión de Stock</h1>
 
-{% if productos %}
-<table border="1" cellpadding="5">
-    <tr>
-        <th>Nombre</th>
-        <th>Stock</th>
-        <th>Precio</th>
-        <th>Categoría</th>
-        <th>Acciones</th>
-    </tr>
-    {% for producto in productos %}
-    <tr>
-        <td>{{ producto.nombre }}</td>
-        <td>{{ producto.stock }}</td>
-        <td>{{ producto.precio }}</td>
-        <td>{{ producto.categoria.nombre }}</td>
-        <td>
-            <!-- Formulario para actualizar stock -->
-            <form method="POST" action="{{ url_for('actualizar_stock', id=producto.id) }}" style="display:inline;">
-                <input type="number" name="nuevo_stock" value="{{ producto.stock }}">
-                <button type="submit">Actualizar</button>
-            </form>
+# -------------------------------
+# RUTA: CONSULTAR
+# -------------------------------
+@app.route("/consultar", methods=["GET", "POST"])
+def consultar():
+    categorias = Categoria.query.all()
+    productos = []
 
-            <!-- Formulario para eliminar producto -->
-            <form method="POST" action="{{ url_for('eliminar_producto', id=producto.id) }}" style="display:inline;">
-                <button type="submit" onclick="return confirm('¿Seguro que deseas eliminar este producto?');">Eliminar</button>
-            </form>
-        </td>
-    </tr>
-    {% endfor %}
-</table>
-{% else %}
-<p>No hay productos en inventario.</p>
-{% endif %}
-{% endblock %}
+    if request.method == "POST":
+        nombre = request.form.get("nombre")
+        categoria_id = request.form.get("categoria_id")
+
+        query = Producto.query
+        if nombre:
+            query = query.filter(Producto.nombre.ilike(f"%{nombre}%"))
+        if categoria_id:
+            query = query.filter(Producto.categoria_id == categoria_id)
+
+        productos = query.all()
+
+    return render_template("consultar.html", categorias=categorias, productos=productos)
+
+# -------------------------------
+# RUTA: STOCK
+# -------------------------------
+@app.route("/stock")
+def stock():
+    productos = Producto.query.all()
+    return render_template("stock.html", productos=productos)
+
+# -------------------------------
+# RUTA: EDITAR PRODUCTO
+# -------------------------------
+@app.route("/producto/editar/<int:id>", methods=["GET", "POST"])
+def editar_producto(id):
+    producto = Producto.query.get_or_404(id)
+    categorias = Categoria.query.all()
+
+    if request.method == "POST":
+        producto.nombre = request.form["nombre"]
+        producto.descripcion = request.form["descripcion"]
+        producto.precio_compra = request.form["precio_compra"]
+        producto.precio_venta = request.form["precio_venta"]
+        producto.estado = request.form["estado"]
+        producto.categoria_id = request.form.get("categoria_id") or None
+        db.session.commit()
+        return redirect(url_for("stock"))
+
+    return render_template("editar_producto.html", producto=producto, categorias=categorias)
+
+# -------------------------------
+# RUTA: ELIMINAR PRODUCTO
+# -------------------------------
+@app.route("/producto/eliminar/<int:id>")
+def eliminar_producto(id):
+    producto = Producto.query.get_or_404(id)
+    db.session.delete(producto)
+    db.session.commit()
+    return redirect(url_for("stock"))
+
+if __name__ == "__main__":
+    app.run(debug=True)
