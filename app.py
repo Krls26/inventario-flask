@@ -1,6 +1,6 @@
-from flask import Flask, render_template, request, redirect, url_for, send_file, flash, Response
+from flask import Flask, render_template, request, redirect, url_for, send_file, flash
 import pandas as pd
-from models import db, Producto, Categoria
+from models import db, Producto, Categoria, Sucursal, ProductoSucursal
 import os
 from io import BytesIO
 
@@ -22,6 +22,13 @@ with app.app_context():
     for nombre in categorias_iniciales:
         if not Categoria.query.filter_by(nombre=nombre).first():
             db.session.add(Categoria(nombre=nombre))
+
+    # Sucursales iniciales
+    sucursales_iniciales = ["Sucursal Centro", "Sucursal Norte", "Sucursal Sur"]
+    for nombre in sucursales_iniciales:
+        if not Sucursal.query.filter_by(nombre=nombre).first():
+            db.session.add(Sucursal(nombre=nombre))
+
     db.session.commit()
 
 
@@ -49,17 +56,24 @@ def inicio():
                 producto = Producto.query.filter_by(nombre=nombre).first()
                 if producto:
                     producto.precio = precio
-                    producto.stock = stock
                     producto.categoria_id = categoria.id
                 else:
                     producto = Producto(
                         nombre=nombre,
                         precio=precio,
-                        stock=stock,
                         categoria_id=categoria.id
                     )
                     db.session.add(producto)
-            
+                    db.session.commit()
+
+                # Asignar stock en la primera sucursal (ejemplo)
+                sucursal = Sucursal.query.first()
+                ps = ProductoSucursal.query.filter_by(producto_id=producto.id, sucursal_id=sucursal.id).first()
+                if ps:
+                    ps.stock = stock
+                else:
+                    db.session.add(ProductoSucursal(producto_id=producto.id, sucursal_id=sucursal.id, stock=stock))
+
             db.session.commit()
             flash("Inventario actualizado/importado correctamente.", "success")
 
@@ -70,16 +84,24 @@ def inicio():
 @app.route("/agregar_producto", methods=["GET", "POST"])
 def agregar_producto():
     categorias = Categoria.query.all()
+    sucursales = Sucursal.query.all()
     if request.method == "POST":
         nombre = request.form["nombre"]
         precio = float(request.form["precio"])
         stock = int(request.form["stock"])
         categoria_id = int(request.form["categoria_id"])
-        nuevo = Producto(nombre=nombre, precio=precio, stock=stock, categoria_id=categoria_id)
+        sucursal_id = int(request.form["sucursal_id"])
+
+        nuevo = Producto(nombre=nombre, precio=precio, categoria_id=categoria_id)
         db.session.add(nuevo)
         db.session.commit()
+
+        # Stock en la sucursal elegida
+        db.session.add(ProductoSucursal(producto_id=nuevo.id, sucursal_id=sucursal_id, stock=stock))
+        db.session.commit()
+
         return redirect(url_for("agregar_producto"))
-    return render_template("agregar_producto.html", categorias=categorias)
+    return render_template("agregar_producto.html", categorias=categorias, sucursales=sucursales)
 
 
 # ---------- AGREGAR CATEGORÍA ----------
@@ -101,13 +123,11 @@ def consultar():
     categoria_id = request.form.get("categoria_id", type=int) if request.method == "POST" else None
     sucursal_id = request.form.get("sucursal_id", type=int) if request.method == "POST" else None
 
-    # Base query: unir productos con categorías e inventario por sucursal
     query = db.session.query(Producto, Categoria, Sucursal, ProductoSucursal).\
         join(Categoria, Producto.categoria_id == Categoria.id).\
         join(ProductoSucursal, Producto.id == ProductoSucursal.producto_id).\
         join(Sucursal, ProductoSucursal.sucursal_id == Sucursal.id)
 
-    # Filtros dinámicos
     if nombre:
         query = query.filter(Producto.nombre.ilike(f"%{nombre}%"))
     if categoria_id:
@@ -116,8 +136,6 @@ def consultar():
         query = query.filter(Sucursal.id == sucursal_id)
 
     resultados = query.all()
-
-    # Consultar categorías y sucursales para los listbox del formulario
     categorias = Categoria.query.all()
     sucursales = Sucursal.query.all()
 
@@ -127,9 +145,9 @@ def consultar():
         categorias=categorias,
         sucursales=sucursales,
         categoria_id=categoria_id,
-        sucursal_id=sucursal_id
+        sucursal_id=sucursal_id,
+        nombre=nombre
     )
-
 
 
 # ---------- EXPORTAR INVENTARIO ----------
@@ -137,24 +155,31 @@ def consultar():
 def exportar_excel():
     nombre = request.form.get("nombre", "").strip()
     categoria_id = request.form.get("categoria_id", type=int)
+    sucursal_id = request.form.get("sucursal_id", type=int)
 
-    query = Producto.query
+    query = db.session.query(Producto, Categoria, Sucursal, ProductoSucursal).\
+        join(Categoria, Producto.categoria_id == Categoria.id).\
+        join(ProductoSucursal, Producto.id == ProductoSucursal.producto_id).\
+        join(Sucursal, ProductoSucursal.sucursal_id == Sucursal.id)
+
     if nombre:
         query = query.filter(Producto.nombre.ilike(f"%{nombre}%"))
     if categoria_id:
-        query = query.filter_by(categoria_id=categoria_id)
+        query = query.filter(Producto.categoria_id == categoria_id)
+    if sucursal_id:
+        query = query.filter(Sucursal.id == sucursal_id)
 
-    productos = query.all()
+    resultados = query.all()
 
     data = [{
         "Nombre": p.nombre,
-        "Categoría": p.categoria.nombre if p.categoria else "Sin categoría",
-        "Stock": p.stock,
+        "Categoría": c.nombre,
+        "Sucursal": s.nombre,
+        "Stock": ps.stock,
         "Precio": p.precio
-    } for p in productos]
+    } for p, c, s, ps in resultados]
 
-    # Definir orden de columnas explícitamente
-    columnas = ["Nombre", "Categoría", "Stock", "Precio"]
+    columnas = ["Nombre", "Categoría", "Sucursal", "Stock", "Precio"]
     df = pd.DataFrame(data, columns=columnas)
 
     output = BytesIO()
@@ -167,30 +192,6 @@ def exportar_excel():
         as_attachment=True,
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
-
-
-# ---------- ACTUALIZAR Y ELIMINAR STOCK ----------
-@app.route("/stock", methods=["GET"])
-def stock():
-    productos = Producto.query.all()
-    return render_template("stock.html", productos=productos)
-
-
-@app.route("/actualizar_stock/<int:id>", methods=["POST"])
-def actualizar_stock(id):
-    producto = Producto.query.get_or_404(id)
-    nuevo_stock = int(request.form["nuevo_stock"])
-    producto.stock = nuevo_stock
-    db.session.commit()
-    return redirect(url_for("stock"))
-
-
-@app.route("/eliminar_producto/<int:id>", methods=["POST"])
-def eliminar_producto(id):
-    producto = Producto.query.get_or_404(id)
-    db.session.delete(producto)
-    db.session.commit()
-    return redirect(url_for("stock"))
 
 
 if __name__ == "__main__":
